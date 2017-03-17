@@ -101,4 +101,3 @@ Thank you to all contributors:
 * [Andrew Hayes](https://github.com/AndrewRussellHayes)
 * [Matthew Fernandez](https://github.com/Smattr)
 * [Yoshihiro YUNOMAE](https://github.com/yunomae)
-* [Sam Stephenson](https://github.com/swstephenson)

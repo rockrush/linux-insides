@@ -45,15 +45,7 @@ char *command_line;
 char *after_dashes;
 ```
 
-The first represents a pointer to the kernel command line and the second will contain the result of the `parse_args` function which parses an input string with parameters in the form `name=value`, looking for specific keywords and invoking the right handlers. We will not go into the details related with these two variables at this time, but will see it in the next parts. In the next step we can see a call to the:
-
-```C
-lockdep_init();
-```
-
-function. `lockdep_init` initializes [lock validator](https://www.kernel.org/doc/Documentation/locking/lockdep-design.txt). Its implementation is pretty simple, it just initializes two [list_head](https://github.com/0xAX/linux-insides/blob/master/DataStructures/dlist.md) hashes and sets the `lockdep_initialized` global variable to `1`. Lock validator detects circular lock dependencies and is called when any [spinlock](http://en.wikipedia.org/wiki/Spinlock) or [mutex](http://en.wikipedia.org/wiki/Mutual_exclusion) is acquired.
-
-The next function is `set_task_stack_end_magic` which takes address of the `init_task` and sets `STACK_END_MAGIC` (`0x57AC6E9D`) as canary for it. `init_task` represents the initial task structure:
+The first represents a pointer to the kernel command line and the second will contain the result of the `parse_args` function which parses an input string with parameters in the form `name=value`, looking for specific keywords and invoking the right handlers. We will not go into the details related with these two variables at this time, but will see it in the next parts. In the next step we can see a call to the `set_task_stack_end_magic` function. This function takes address of the `init_task` and sets `STACK_END_MAGIC` (`0x57AC6E9D`) as canary for it. `init_task` represents the initial task structure:
 
 ```C
 struct task_struct init_task = INIT_TASK(init_task);
@@ -130,7 +122,7 @@ void set_task_stack_end_magic(struct task_struct *tsk)
 }
 ```
 
-Its implementation is simple. `set_task_stack_end_magic` gets the end of the stack for the given `task_struct` with the `end_of_stack` function. The end of a process stack depends on the `CONFIG_STACK_GROWSUP` configuration option. As we learn in `x86_64` architecture, the stack grows down. So the end of the process stack will be:
+Its implementation is simple. `set_task_stack_end_magic` gets the end of the stack for the given `task_struct` with the `end_of_stack` function. Earlier (and now for all architectures besides `x86_64`) stack was located in the `thread_info` structure. So the end of a process stack depends on the `CONFIG_STACK_GROWSUP` configuration option. As we learn in `x86_64` architecture, the stack grows down. So the end of the process stack will be:
 
 ```C
 (unsigned long *)(task_thread_info(p) + 1);
@@ -142,13 +134,52 @@ where `task_thread_info` just returns the stack which we filled with the `INIT_T
 #define task_thread_info(task)  ((struct thread_info *)(task)->stack)
 ```
 
+From the Linux kernel `v4.9-rc1` release, `thread_info` structure may contains only flags and stack pointer resides in `task_struct` structure which represents a thread in the Linux kernel. This depends on `CONFIG_THREAD_INFO_IN_TASK` kernel configuration option which is enabled by default for `x86_64`. You can be sure in this if you will look in the [init/main.c](https://github.com/torvalds/linux/blob/master/init/main.c) configuration build file:
+
+```
+config THREAD_INFO_IN_TASK
+	bool
+	help
+	  Select this to move thread_info off the stack into task_struct.  To
+	  make this work, an arch will need to remove all thread_info fields
+	  except flags and fix any runtime bugs.
+
+	  One subtle change that will be needed is to use try_get_task_stack()
+	  and put_task_stack() in save_thread_stack_tsk() and get_wchan().
+```
+
+and [arch/x86/Kconfig](https://github.com/torvalds/linux/blob/master/arch/x86/Kconfig):
+
+```
+config X86
+	def_bool y
+        ...
+        ...
+        ...
+        select THREAD_INFO_IN_TASK
+        ...
+        ...
+        ...
+```
+
+So, in this way we may just get end of a thread stack from the given `task_struct` structure:
+
+```C
+#ifdef CONFIG_THREAD_INFO_IN_TASK
+static inline unsigned long *end_of_stack(const struct task_struct *task)
+{
+	return task->stack;
+}
+#endif
+```
+
 As we got the end of the init process stack, we write `STACK_END_MAGIC` there. After `canary` is set, we can check it like this:
 
 ```C
 if (*end_of_stack(task) != STACK_END_MAGIC) {
         //
         // handle stack overflow here
-		//
+	//
 }
 ```
 
@@ -352,7 +383,7 @@ This function starts from the reserving memory block for the kernel `_text` and 
 memblock_reserve(__pa_symbol(_text), (unsigned long)__bss_stop - (unsigned long)_text);
 ```
 
-You can read about `memblock` in the [Linux kernel memory management Part 1.](http://0xax.gitbooks.io/linux-insides/content/MM/linux-mm-1.html). As you can remember `memblock_reserve` function takes two parameters:
+You can read about `memblock` in the [Linux kernel memory management Part 1.](http://0xax.gitbooks.io/linux-insides/content/mm/linux-mm-1.html). As you can remember `memblock_reserve` function takes two parameters:
 
 * base physical address of a memory block;
 * size of a memory block.

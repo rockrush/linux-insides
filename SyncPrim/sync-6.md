@@ -4,7 +4,7 @@ Synchronization primitives in the Linux kernel. Part 6.
 Introduction
 --------------------------------------------------------------------------------
 
-This is the sixth part of the chapter which describes [synchronization primitives](https://en.wikipedia.org/wiki/Synchronization_(computer_science) in the Linux kernel and in the previous parts we finished to consider different [readers-writer lock](https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock) synchronization primitives. We will continue to learn synchronization primitives in this part and start to consider a similar synchronization primitive which can be used to avoid the `writer starvation` problem. The name of this synchronization primitive is - `seqlock` or `sequential locks`.
+This is the sixth part of the chapter which describes [synchronization primitives](https://en.wikipedia.org/wiki/Synchronization_(computer_science)) in the Linux kernel and in the previous parts we finished to consider different [readers-writer lock](https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock) synchronization primitives. We will continue to learn synchronization primitives in this part and start to consider a similar synchronization primitive which can be used to avoid the `writer starvation` problem. The name of this synchronization primitive is - `seqlock` or `sequential locks`.
 
 We know from the previous [part](https://0xax.gitbooks.io/linux-insides/content/SyncPrim/sync-5.html) that [readers-writer lock](https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock) is a special lock mechanism which allows concurrent access for read-only operations, but an exclusive lock is needed for writing or modifying data. As we may guess, it may lead to a problem which is called `writer starvation`. In other words, a writer process can't acquire a lock as long as at least one reader process which aqcuired a lock holds it. So, in the situation when contention is high, it will lead to situation when a writer process which wants to acquire a lock will wait for it for a long time.
 
@@ -303,7 +303,7 @@ static inline void raw_write_seqcount_end(seqcount_t *s)
 
 and in the end we just call the `spin_unlock` macro to give access for other readers or writers.
 
-That's all about `sequential lock` mechanism in the Linux kernel. Of course we did not consider full [API](https://en.wikipedia.org/wiki/Application_programming_interface) of this mechanism in this part. But all other functions are based on these which we described here. For example, Linux kernel also provides some safe macros/functions to use `sequential lock` mechanism in [interrupt handlers](https://en.wikipedia.org/wiki/Interrupt_handler) of [softirq](https://0xax.gitbooks.io/linux-insides/content/Interrupts/interrupts-9.html): `write_seqclock_irq` and `write_sequnlock_irq`:
+That's all about `sequential lock` mechanism in the Linux kernel. Of course we did not consider full [API](https://en.wikipedia.org/wiki/Application_programming_interface) of this mechanism in this part. But all other functions are based on these which we described here. For example, Linux kernel also provides some safe macros/functions to use `sequential lock` mechanism in [interrupt handlers](https://en.wikipedia.org/wiki/Interrupt_handler) of [softirq](https://0xax.gitbooks.io/linux-insides/content/interrupts/interrupts-9.html): `write_seqclock_irq` and `write_sequnlock_irq`:
 
 ```C
 static inline void write_seqlock_irq(seqlock_t *sl)
@@ -347,6 +347,6 @@ Links
 * [x86_64](https://en.wikipedia.org/wiki/X86-64)
 * [Timers and time management in the Linux kernel](https://0xax.gitbooks.io/linux-insides/content/Timers/)
 * [interrupt handlers](https://en.wikipedia.org/wiki/Interrupt_handler)
-* [softirq](https://0xax.gitbooks.io/linux-insides/content/Interrupts/interrupts-9.html)
+* [softirq](https://0xax.gitbooks.io/linux-insides/content/interrupts/interrupts-9.html)
 * [IRQ](https://en.wikipedia.org/wiki/Interrupt_request_(PC_architecture))
 * [Previous part](https://0xax.gitbooks.io/linux-insides/content/SyncPrim/sync-5.html)

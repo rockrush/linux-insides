@@ -17,10 +17,11 @@ Support
 On other languages
 -------------------
 
-  * [Russian](https://github.com/proninyaroslav/linux-insides-ru)
   * [Chinese](https://github.com/MintCN/linux-insides-zh)
   * [Spanish](https://github.com/leolas95/linux-insides)
-
+  * [Russian](https://github.com/proninyaroslav/linux-insides-ru)
+  * [Turkish](https://github.com/ayyucedemirbas/linux-insides_Turkish)
+  
 LICENSE
 -------------
 
