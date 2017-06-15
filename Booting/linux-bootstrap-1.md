@@ -34,7 +34,7 @@ CS selector 0xf000
 CS base     0xffff0000
 ```
 
-The processor starts working in [real mode](https://en.wikipedia.org/wiki/Real_mode). Let's back up a little and try to understand memory segmentation in this mode. Real mode is supported on all x86-compatible processors, from the [8086](https://en.wikipedia.org/wiki/Intel_8086) all the way to the modern Intel 64-bit CPUs. The 8086 processor has a 20-bit address bus, which means that it could work with a 0-0xFFFFF address space (1 megabyte). But it only has 16-bit registers, which have a maximum address of 2^16 - 1 or 0xffff (64 kilobytes). [Memory segmentation](http://en.wikipedia.org/wiki/Memory_segmentation) is used to make use of all the address space available. All memory is divided into small, fixed-size segments of 65536 bytes (64 KB). Since we cannot address memory above 64 KB with 16 bit registers, an alternate method is devised. An address consists of two parts: a segment selector, which has a base address, and an offset from this base address. In real mode, the associated base address of a segment selector is `Segment Selector * 16`. Thus, to get a physical address in memory, we need to multiply the segment selector part by 16 and add the offset:
+The processor starts working in [real mode](https://en.wikipedia.org/wiki/Real_mode). Let's back up a little and try to understand memory segmentation in this mode. Real mode is supported on all x86-compatible processors, from the [8086](https://en.wikipedia.org/wiki/Intel_8086) all the way to the modern Intel 64-bit CPUs. The 8086 processor has a 20-bit address bus, which means that it could work with a 0-0xFFFFF address space (1 megabyte). But it only has 16-bit registers, which have a maximum address of `2^16 - 1` or `0xffff` (64 kilobytes). [Memory segmentation](http://en.wikipedia.org/wiki/Memory_segmentation) is used to make use of all the address space available. All memory is divided into small, fixed-size segments of 65536 bytes (64 KB). Since we cannot address memory above 64 KB with 16 bit registers, an alternate method is devised. An address consists of two parts: a segment selector, which has a base address, and an offset from this base address. In real mode, the associated base address of a segment selector is `Segment Selector * 16`. Thus, to get a physical address in memory, we need to multiply the segment selector part by 16 and add the offset:
 
 ```
 PhysicalAddress = Segment Selector * 16 + Offset
@@ -58,7 +58,7 @@ which is 65520 bytes past the first megabyte. Since only one megabyte is accessi
 
 Ok, now we know about real mode and memory addressing. Let's get back to discussing register values after reset:
 
-The `CS` register consists of two parts: the visible segment selector, and the hidden base address. While the base address is normally formed by multiplying the segment selector value by 16, during a hardware reset the segment selector in the CS register is loaded with 0xf000 and the base address is loaded with 0xffff0000; the processor uses this special base address until `CS` is changed.
+The `CS` register consists of two parts: the visible segment selector, and the hidden base address. While the base address is normally formed by multiplying the segment selector value by 16, during a hardware reset the segment selector in the CS register is loaded with `0xf000` and the base address is loaded with `0xffff0000`; the processor uses this special base address until `CS` is changed.
 
 The starting address is formed by adding the base address to the value in the EIP register:
 
@@ -67,7 +67,7 @@ The starting address is formed by adding the base address to the value in the EI
 '0xfffffff0'
 ```
 
-We get `0xfffffff0`, which is 4GB (16 bytes). This point is called the [Reset vector](http://en.wikipedia.org/wiki/Reset_vector). This is the memory location at which the CPU expects to find the first instruction to execute after reset. It contains a [jump](http://en.wikipedia.org/wiki/JMP_%28x86_instruction%29) (`jmp`) instruction that usually points to the BIOS entry point. For example, if we look in the [coreboot](http://www.coreboot.org/) source code, we see:
+We get `0xfffffff0`, which is 16 bytes below 4GB. This point is called the [Reset vector](http://en.wikipedia.org/wiki/Reset_vector). This is the memory location at which the CPU expects to find the first instruction to execute after reset. It contains a [jump](http://en.wikipedia.org/wiki/JMP_%28x86_instruction%29) (`jmp`) instruction that usually points to the BIOS entry point. For example, if we look in the [coreboot](http://www.coreboot.org/) source code, we see:
 
 ```assembly
     .section ".reset"
@@ -79,7 +79,7 @@ reset_vector:
     ...
 ```
 
-Here we can see the `jmp` instruction [opcode](http://ref.x86asm.net/coder32.html#xE9), which is 0xe9, and its destination address at `_start - ( . + 2)`. We can also see that the `reset` section is 16 bytes, and that it starts at `0xfffffff0`:
+Here we can see the `jmp` instruction [opcode](http://ref.x86asm.net/coder32.html#xE9), which is `0xe9`, and its destination address at `_start - ( . + 2)`. We can also see that the `reset` section is 16 bytes, and that it starts at `0xfffffff0`:
 
 ```
 SECTIONS {
@@ -93,7 +93,7 @@ SECTIONS {
 }
 ```
 
-Now the BIOS starts; after initializing and checking the hardware, the BIOS needs to find a bootable device. A boot order is stored in the BIOS configuration, controlling which devices the BIOS attempts to boot from. When attempting to boot from a hard drive, the BIOS tries to find a boot sector. On hard drives partitioned with an MBR partition layout, the boot sector is stored in the first 446 bytes of the first sector, where each sectoris 512 bytes. The final two bytes of the first sector are `0x55` and `0xaa`, which designates to the BIOS that this device is bootable. For example:
+Now the BIOS starts; after initializing and checking the hardware, the BIOS needs to find a bootable device. A boot order is stored in the BIOS configuration, controlling which devices the BIOS attempts to boot from. When attempting to boot from a hard drive, the BIOS tries to find a boot sector. On hard drives partitioned with an MBR partition layout, the boot sector is stored in the first 446 bytes of the first sector, where each sector is 512 bytes. The final two bytes of the first sector are `0x55` and `0xaa`, which designates to the BIOS that this device is bootable. For example:
 
 ```assembly
 ;
@@ -188,7 +188,7 @@ Continuing from before, now that the BIOS has chosen a boot device and transferr
 
 `grub_main` initializes the console, gets the base address for modules, sets the root device, loads/parses the grub configuration file, loads modules, etc. At the end of execution, `grub_main` moves grub to normal mode. `grub_normal_execute` (from `grub-core/normal/main.c`) completes the final preparations and shows a menu to select an operating system. When we select one of the grub menu entries, `grub_menu_execute_entry` runs, executing the grub `boot` command and booting the selected operating system.
 
-As we can read in the kernel boot protocol, the bootloader must read and fill some fields of the kernel setup header, which starts at the `0x01f1` offset from the kernel setup code. The kernel header [arch/x86/boot/header.S](https://github.com/torvalds/linux/blob/master/arch/x86/boot/header.S) starts from:
+As we can read in the kernel boot protocol, the bootloader must read and fill some fields of the kernel setup header, which starts at the `0x01f1` offset from the kernel setup code. You may look at the boot [linker script](https://github.com/torvalds/linux/blob/master/arch/x86/boot/setup.ld#L16) to make sure in this offset. The kernel header [arch/x86/boot/header.S](https://github.com/torvalds/linux/blob/master/arch/x86/boot/header.S) starts from:
 
 ```assembly
     .globl hdr
@@ -379,13 +379,13 @@ Almost all of the setup code is in preparation for the C language environment in
 
 This can lead to 3 different scenarios:
 
-* `ss` has valid value 0x10000 (as do all other segment registers beside `cs`)
+* `ss` has valid value `0x10000` (as do all other segment registers beside `cs`)
 * `ss` is invalid and `CAN_USE_HEAP` flag is set     (see below)
 * `ss` is invalid and `CAN_USE_HEAP` flag is not set (see below)
 
 Let's look at all three of these scenarios in turn:
 
-* `ss` has a correct address (0x10000). In this case, we go to label [2](https://github.com/torvalds/linux/blob/master/arch/x86/boot/header.S#L481):
+* `ss` has a correct address (`0x10000`). In this case, we go to label [2](https://github.com/torvalds/linux/blob/master/arch/x86/boot/header.S#L481):
 
 ```assembly
 2:  andw    $~3, %dx
